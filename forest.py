@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
 
 import sys
+import math
 
 class NodeToFree():
+  def rebuildpath(self,path):
+    res=[]
+    for i in path:
+      if path.index(i)+1 < len(path):
+        res.append((i,path[path.index(i)+1]))
+    return res
 
   def __init__(self,idNode,pop,maxRate,distanceToSafe,path):
     self.idNode=idNode
     self.pop=pop
     self.maxRate=maxRate
-    self.distanceToSafe=distanceToSafe
-    self.path=path
+    self.distanceToSafe=distanceToSafe 
+    self.path = self.rebuildpath([idNode] + path)
 
   def __repr__(self):
-    return "idNode : "+str(self.idNode)+"\npopulation : "+str(self.pop)+"\nMaxRate : "+str(self.maxRate)+"\ndistanceToSafe : "+str(self.distanceToSafe)+"\nPath: : "+str(self.path)+"\n"
+    return "idNode : "+str(self.idNode)+"\npopulation : "+str(self.pop)+"\nMaxRate : "+str(self.maxRate)+"\ndistanceToSafe : "+str(self.distanceToSafe)+"\nPath: : "+str(self.path)+"\n\n"
 
 
 def readFile(source_file):
@@ -21,6 +28,13 @@ def readFile(source_file):
   nbPath=0
   idSafeNode=0
   i=0
+
+  headerGraph = True
+  readerGraph = False
+  Graph={}
+  listOfEdges=[]
+  graphNode=0
+  graphEdge=0
   evacuationPath=[]
   with open(source_file) as f:
     content = f.readlines()
@@ -40,13 +54,32 @@ def readFile(source_file):
             i += 1
           else:
             readerPath=False
-  print(evacuationPath)
-
-
+        if (not(readerPath)):
+          if (headerGraph):
+            for path in evacuationPath:
+              listOfEdges += path.path
+            listOfEdges=list(set(listOfEdges))
+            listOfEdges.sort()
+            graphNode=int(line.split()[0])
+            graphEdge=int(line.split()[1])
+            i=0
+            headerGraph=False
+            readerGraph=True
+            continue
+          if (readerGraph):
+            if (i < graphEdge):
+              temp=line.split()
+              origin=int(temp[0])
+              dest=int(temp[1])
+              if ( (origin,dest) in listOfEdges or (dest,origin) in listOfEdges):
+                distance=int(math.ceil(float(temp[3])))
+                capacite=int(math.floor(float(temp[4])))
+                Graph[(origin,dest)]={"distance": distance, "capacite":capacite}
+    return {"NodeEvac":evacuationPath,"Graph":Graph} 
 
 def main(source_file):
   obj=readFile(source_file) 
-
+  print(obj)
 
 if __name__ == "__main__":
   if len(sys.argv) != 2:
