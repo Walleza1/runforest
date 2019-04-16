@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os, sys
-import Probleme
+from Probleme import Probleme
 
 def readSolutionFile(source_file):
   with open(source_file) as f:
@@ -10,6 +10,8 @@ def readSolutionFile(source_file):
     if not(os.path.isfile('Instances/'+content[0].replace("\n","")+".full")):
       print("Error file unknown")
       exit(1)
+    probleme= Probleme('Instances/'+content[0].replace("\n","")+".full")
+    print(probleme)
     
 def main():
   readSolutionFile("solution")

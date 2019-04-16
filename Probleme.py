@@ -23,7 +23,6 @@ class NodeToFree():
 
 
 class Probleme:
-
   def __init__(self,source_file):
     self.source_file=source_file
     headerPath = True
