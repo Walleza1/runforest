@@ -16,6 +16,7 @@ class NodeToFree():
     self.pop=pop
     self.maxRate=maxRate
     self.distanceToSafe=distanceToSafe 
+    self.nodes=[idNode]+path
     self.path = self.rebuildpath([idNode] + path)
 
   def __repr__(self):
@@ -32,11 +33,13 @@ class Probleme:
     i=0
     headerGraph = True
     readerGraph = False
-    self.Graph={}
+    self.edges={}
+    self.nodes=[]
     listOfEdges=[]
     graphNode=0
     graphEdge=0
-    self.evacuationPath=[]
+    self.evacuationPath={}
+    evacuationPathTemp=[]
     with open(source_file) as f:
       content = f.readlines()
       for line in content:
@@ -51,16 +54,21 @@ class Probleme:
           if readerPath:
             if (i < nbPath):
               temp=list(map(int,line.split()))
-              self.evacuationPath.append(NodeToFree(temp.pop(0),temp.pop(0),temp.pop(0),temp.pop(0),temp))
+              evacuationPathTemp.append(NodeToFree(temp.pop(0),temp.pop(0),temp.pop(0),temp.pop(0),temp))
               i += 1
             else:
               readerPath=False
           if (not(readerPath)):
             if (headerGraph):
-              for path in self.evacuationPath:
+              for path in evacuationPathTemp:
                 listOfEdges += path.path
+                self.nodes += path.nodes
+              self.nodes=list(set(self.nodes))
+              self.nodes.sort()
+              self.evacuationPath={x.idNode:x for x in evacuationPathTemp}
               listOfEdges=list(set(listOfEdges))
               listOfEdges.sort()
+              print(listOfEdges)
               graphNode=int(line.split()[0])
               graphEdge=int(line.split()[1])
               i=0
@@ -75,11 +83,11 @@ class Probleme:
                 if ( (origin,dest) in listOfEdges or (dest,origin) in listOfEdges):
                   distance=int(math.ceil(float(temp[3])))
                   capacite=int(math.floor(float(temp[4])))
-                  self.Graph[(origin,dest)]={"distance": distance, "dueDate":int(temp[2]),"capacite":capacite}
+                  self.edges[(origin,dest)]={"distance": distance, "dueDate":int(temp[2]),"capacite":capacite}
 
 
   def __repr__(self):
-    return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nGraph : "+str(self.Graph)+"\n\n"
+    return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)+"\nnodes : "+str(self.nodes)+"\n\n"
 
 def main(source_file):
   obj=Probleme(source_file) 
