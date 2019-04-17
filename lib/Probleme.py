@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-
 import sys
 import math
 
-class NodeToFree():
+class NodeToFree(object):
   def rebuildpath(self,path):
     res=[]
     for i in path:
@@ -23,7 +21,7 @@ class NodeToFree():
     return "idNode : "+str(self.idNode)+"\npopulation : "+str(self.pop)+"\nMaxRate : "+str(self.maxRate)+"\ndistanceToSafe : "+str(self.distanceToSafe)+"\nPath: : "+str(self.path)+"\n\n"
 
 
-class Probleme:
+class Probleme(object):
   def __init__(self,source_file):
     self.source_file=source_file
     headerPath = True
@@ -88,13 +86,3 @@ class Probleme:
 
   def __repr__(self):
     return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)+"\nnodes : "+str(self.nodes)+"\n\n"
-
-def main(source_file):
-  obj=Probleme(source_file) 
-  print(obj)
-
-if __name__ == "__main__":
-  if len(sys.argv) != 2:
-    print("Give a path to a file to read")
-    exit(1)
-  main(sys.argv[1])
