@@ -42,7 +42,6 @@ class Probleme(object):
       content = f.readlines()
       for line in content:
         if not(line.startswith("c")):
-         # print(line.replace("\n",""))
           if headerPath:
             nbPath=int(line.split()[0])
             idSafeNode=int(line.split()[1])
@@ -66,7 +65,6 @@ class Probleme(object):
               self.evacuationPath={x.idNode:x for x in evacuationPathTemp}
               listOfEdges=list(set(listOfEdges))
               listOfEdges.sort()
-              print(listOfEdges)
               graphNode=int(line.split()[0])
               graphEdge=int(line.split()[1])
               i=0
@@ -75,7 +73,9 @@ class Probleme(object):
               continue
             if (readerGraph):
               if (i < graphEdge):
+                i+=1
                 temp=line.split()
+                print(temp)
                 origin=int(temp[0])
                 dest=int(temp[1])
                 if ( (origin,dest) in listOfEdges or (dest,origin) in listOfEdges):

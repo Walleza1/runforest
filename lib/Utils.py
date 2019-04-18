@@ -1,7 +1,6 @@
 from collections import deque
 
 class Fifo(object):
-
   def __init__(self,sizeMax):
     self.fifo=deque([],sizeMax)
 
@@ -10,7 +9,6 @@ class Fifo(object):
       self.fifo.appendleft(elmt)
     else:
       print("Fifo full")
-
 
   def pop(self):
     ret = None
@@ -28,3 +26,5 @@ class Fifo(object):
 
   def __repr__(self):
     return "Fifo : "+str(self.fifo)
+
+

@@ -1,5 +1,6 @@
 import os, sys
 from lib.Probleme import Probleme
+from lib.Utils import Fifo
 
 class Solution(object):
 
@@ -17,7 +18,7 @@ class Solution(object):
       self.nodeIni = []
       for i in range(headerSize):
         temp = f.readline().split()
-        self.nodeIni.append({"node":int(temp[0]),"rate":int(temp[1]),"t":int(temp[2])})
+        self.nodeIni.append({"id":int(temp[0]),"rate":int(temp[1]),"tDebut":int(temp[2])})
         i+=1
       self.isValid = True if f.readline().strip().lower() == "valid" else False
       self.fObjectif = f.readline()
@@ -36,9 +37,15 @@ class Solution(object):
     for arc in self.probleme.edges.items():
       etat[t]['arc'][ arc[0] ] = arc
       etat[t]['arc'][ arc[0] ][1]['flow']=0
-    for node in self.probleme.nodes:
-      pop=0
-      etat[t]['node'][node]={'population':0}
+    for node in self.nodeIni:
+      print(node)
+      etat[t]['node'][ node['id'] ] = node
+      etat[t]['node'][ node['id'] ]['population'] =self.probleme.evacuationPath[ node['id'] ].pop
+      etat[t]['node'][ node['id'] ]['maxRate'] =self.probleme.evacuationPath[ node['id'] ].maxRate
+      etat[t]['node'][ node['id'] ]['path'] =self.probleme.evacuationPath[ node['id'] ].path
+      
+    print(etat)
+      
     return etat
 
   def __repr__(self):
