@@ -24,6 +24,9 @@ class Fifo(object):
       self.fifo.append(ret)
     return ret
 
+  def isEmpty(self):
+    return len(self.fifo) ==0
+
   def __repr__(self):
     return "Fifo : "+str(self.fifo)
 
