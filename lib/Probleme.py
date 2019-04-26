@@ -1,6 +1,6 @@
 import sys
 import math
-from graphviz import Graph
+from graphviz import Digraph
 
 class Edge(object):
   def __init__(self,origin,destination,dueDate,length,capacity):
@@ -49,6 +49,7 @@ class Probleme(object):
       for i in range(0,self.N):
         temp = [ int(x) for x in f.readline().split() ]
         evacuationPathTemp.append(NodeToFree(temp.pop(0),temp.pop(0),temp.pop(0),temp.pop(0),temp))
+      self.evacuationPath=evacuationPathTemp
       # Merge Edges
       edges = [ x.path for x in evacuationPathTemp ]
       listOfEdges = []
@@ -73,7 +74,7 @@ class Probleme(object):
           self.edges[ (dest,origin) ]=Edge(dest,origin,dueDate,length,capacity)
 
   def renderPath(self,output="output"): 
-    dot = Graph('G',filename=output,engine='sfdp') 
+    dot = Digraph('G',filename=output,format='png') 
     dot.attr('graph',concentrate='true')
     dot.node(str(self.idSafeNode),shape='doublecircle')
     for edge in self.edges:
@@ -81,6 +82,4 @@ class Probleme(object):
     dot.view()
 
   def __repr__(self):
-    return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)+"\nnodes : "+str(self.nodes)+"\n\n"
-
-
+    return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)
