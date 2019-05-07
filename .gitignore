@@ -19,6 +19,5 @@ Session.vim
 tags
 # Persistent undo
 [._]*.un~
-Pipfile.lock
 # End of https://www.gitignore.io/api/vim
 
