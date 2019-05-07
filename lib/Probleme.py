@@ -1,5 +1,6 @@
 import sys
 import math
+import time
 from graphviz import Digraph
 
 class Edge(object):
@@ -32,10 +33,9 @@ class NodeToFree(object):
   def __repr__(self):
     return "idNode : "+str(self.idNode)+"\npopulation : "+str(self.pop)+"\nMaxRate : "+str(self.maxRate)+"\ndistanceToSafe : "+str(self.distanceToSafe)+"\nPath: : "+str(self.path)+"\n\n"
 
-
 class Probleme(object):
   def __init__(self, source_file):
-    self.source_file = source_file;
+    self.source_file = source_file
     with open(source_file) as f:
       # Readline starts with c
       line = f.readline()
@@ -80,6 +80,62 @@ class Probleme(object):
     for edge in self.edges:
         dot.edge(str(edge[0]),str(edge[1]))
     dot.view()
+
+  def minimum(self, instance):
+    min = 0
+
+    file = open("Solutions/" + instance + ".min.txt", "w")
+    file.write(instance + "\n")
+    file.write(str(self.N) + "\n")
+
+    timestamp = time.time()
+
+    for node in self.evacuationPath:
+      value = 0
+      for edge in node.path:
+        value += self.edges[edge].length
+      file.write(str(node.idNode) + ", " + str(value) + ", " + str(0) + "\n")
+
+      value += math.ceil(node.pop / node.maxRate)
+      if value > min:
+        min = value
+
+    execution_time = time.time() - timestamp
+
+    file.write("invalid\n")
+    file.write(str(min) + "\n")
+    file.write(str(execution_time) + "\n")
+    file.write("handmade 0.1.0\n")
+    file.write("\"everyone evacuates from start ; no constraint check\"\n")
+    file.close()
+
+    return min
+
+  def maximum(self, instance):
+    max = 0
+
+    file = open("Solutions/" + instance + ".max.txt", "w")
+    file.write(instance + "\n")
+    file.write(str(self.N) + "\n")
+
+    timestamp = time.time()
+
+    for node in self.evacuationPath:
+      for edge in node.path:
+        max += self.edges[edge].length
+      file.write(str(node.idNode) + ", " + str(max) + ", " + str(0) + "\n")
+      max += math.ceil(node.pop / node.maxRate)
+
+    execution_time = time.time() - timestamp
+
+    file.write("invalid\n")
+    file.write(str(max) + "\n")
+    file.write(str(execution_time) + "\n")
+    file.write("handmade 0.1.0\n")
+    file.write("\"everyone evacuates from start ; no constraint check\"\n")
+    file.close()
+
+    return max
 
   def __repr__(self):
     return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)

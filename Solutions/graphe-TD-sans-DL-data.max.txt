@@ -1,0 +1,10 @@
+graphe-TD-sans-DL-data
+3
+1, 28, 0
+2, 59, 0
+3, 83, 0
+invalid
+94
+6.9141387939453125e-06
+handmade 0.1.0
+"everyone evacuates from start ; no constraint check"
