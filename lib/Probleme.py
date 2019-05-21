@@ -3,6 +3,7 @@ import math
 import time
 from graphviz import Digraph
 from lib.Utils import *
+from lib.Checker import *
 
 class Edge(object):
   def __init__(self,origin,destination,dueDate,length,capacity):
@@ -167,6 +168,69 @@ class Probleme(object):
     file.close()
 
     return max_value
+
+  def sequence_ordering(self, debug):
+    # Sequence ordering: calculation of all distances for each node
+    lengths = {}
+    for node in self.evacuationPath:
+      my_node = CompleteNode().load(node)
+      lengths[my_node] = math.ceil(my_node.pop / my_node.rate)
+      for edge in node.path:
+        lengths[my_node] += self.edges[edge].length
+
+    # Total duration sorted by 'max duration first'
+    lengths_ordered = sorted(lengths.items(), key=lambda kv: kv[1], reverse=True)
+    sequence = []
+    for node in lengths_ordered:
+      sequence.append(node)
+      printDebug(str(node.idNode) + " (" + str(lengths[node]) + ")\n", debug)
+    return sequence
+
+  def resources_placement(self, sequence_order):
+    resources = {}
+
+    for node in sequence_order:
+      isDoneOnce = False
+      delta = 0
+      wasDeltaIncremented = False
+      while not isDoneOnce or wasDeltaIncremented:
+        tTotal = math.ceil(node.pop / node.rate)
+        for edge in node.path:
+          tTotal += self.edges[edge].length
+
+        isDoneOnce = True
+        isLastNode = True
+
+        for edge in node.path.reverse():
+          # The resource already exists
+          tTotal -= self.edges[edge].length
+          if not edge[0] in resources:
+            resources[edge[0]] = Ressource(edge[1])
+          resources[edge[0]].removeTemp()
+          newDelta = resources[edge[0]].addBlock(node.rate, edge.capacity, tTotal + delta, isLastNode, node)
+          if newDelta != 0:
+            wasDeltaIncremented = True
+            delta += newDelta
+          isLastNode = False
+      for res in resources.items():
+        resources[res].fixTemp()
+
+  def compute_solution(self, output, debug):
+    max_value = 0
+
+    file = open(output, "w")
+    file.write(output + "\n")
+    file.write(str(self.N) + "\n")
+
+    timestamp = time.time()
+
+    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
+    printDebug("Probleme::maximum: Beginning, max = " + str(max_value) + "\n", debug)
+
+    sequence_order = self.sequence_ordering(debug)
+    self.resources_placement(sequence_order)
+
+
 
   def __repr__(self):
     return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)

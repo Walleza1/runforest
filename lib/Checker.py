@@ -3,22 +3,33 @@ from lib.Probleme import *
 from lib.Utils import *
 
 class Block(object):
-  def __init__(self,tBegin,tEnd,flow):
+  def __init__(self,tBegin,tEnd,flow,temp=False):
     self.tBegin=tBegin
     self.tEnd=tEnd
     self.flow=flow
+    self.temp=temp
 
   def __repr__(self):
     return "Block : {tBegin :"+str(self.tBegin)+",tEnd :"+str(self.tEnd)+", flow "+str(self.flow)+"}"
 
 class CompleteNode(object):
-  def __init__(self,dic):
-    self.id = dic["id"]
-    self.rate = dic["rate"]
-    self.population=dic["population"]
-    self.maxRate = dic["maxRate"]
-    self.path = dic["path"]
-    self.tDebut = dic["tDebut"]
+  def __init__(self,dic={}):
+    if any(dic):
+      self.id = dic["id"]
+      self.rate = dic["rate"]
+      self.population=dic["population"]
+      self.maxRate = dic["maxRate"]
+      self.path = dic["path"]
+      self.tDebut = dic["tDebut"]
+
+  def load(self, node):
+    self.id = node.idNode
+    self.rate = node.maxRate
+    self.population = node.pop
+    self.maxRate = node.maxRate
+    self.path = node.path
+    self.tDebut = 0
+    return self
 
   def __repr__(self):
     return "{ id : "+str(self.id)+", rate : "+str(self.rate)+", maxRate : "+str(self.maxRate)+", path : "+str(self.path)+", tDebut (d'évac) : "+str(self.tDebut)+"\n"
@@ -35,6 +46,38 @@ class Ressource(object):
   def __repr__(self):
     return str(self.origin)+" -> "+str(self.destination)+" { dueDate: "+str(self.dueDate)+", length : "+str(self.length)+", capacity : "+str(self.capacity)+",listBlock : "+str(self.listBlock)+"}"
 
+  def addBlock(self, flow, capacity, tBegin, isLastNode, node):
+    # Now create block
+    tEnd = tBegin + self.length
+    if (flow > self.capacity):
+      # He is too Big for the ressource
+      raise TypeError
+    # Calc sum of part of ressource used
+    actualOccupaction = sum(c.flow for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
+    potentialOccupation = actualOccupaction + flow
+    if (potentialOccupation > self.capacity):
+      # Impossible to add it: shift
+      newTBegin = min(c.tEnd for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
+      delta = newTBegin - tBegin
+      delta += self.addBlock(flow, capacity, newTBegin, isLastNode, node)
+      return delta
+    else:
+      # Everything is ok, then add this block
+      if (isLastNode):
+        # On ajoute la durée pour évaculer tout le monde ! durée = ceil(pop/rate)
+        tEnd += math.ceil(node.population / node.rate)
+      self.listBlock.append(Block(tBegin, tEnd, node.rate, True))
+      return 0
+
+  def removeTemp(self):
+    for c in self.listBlock:
+      if c.temp:
+        self.listBlock.remove(c)
+
+  def fixTemp(self):
+    for c in self.listBlock:
+      if c.temp:
+        c.temp = False
 
 class Solution(object):
   def __init__(self,fichierProb="",listNoeud=[],tauxNoeud=[]):
@@ -103,7 +146,7 @@ class Solution(object):
       self.metadata = f.readlines()
       self.metadata = [ x.strip() for x in self.metadata ]
       return self
-    
+
   def __repr__(self):
     return "File : " + str(self.file) + "\nnodeIni: " + str(self.nodeIni) + "\nressources: "+str(self.ressources).replace("]},","]},\n")+", tObjectif : "+str(self.tObjectif)+", timeCalc : "+str(self.timeCalc)+", metadata : "+str(self.metadata)+"\n"
 
@@ -143,4 +186,3 @@ class Solution(object):
 
       # Vérifier que tmax respecté dans la solution
     return tMax != self.tObjectif
-

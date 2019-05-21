@@ -12,9 +12,11 @@ def main():
     outfile = outdir + "/" + os.path.splitext(filename)[0][:-1] + "sol"
     problem = Probleme(indir + "/" + filename)
 
+    problem.compute_solution(outfile + ".min.txt", True)
+
     print("#####################\nProblem '" + filename + "'")
-    print("Borne inférieure : " + str(problem.minimum(outfile + ".min.txt", True)))
-    print("Borne supérieure : " + str(problem.maximum(outfile + ".max.txt", True)))
+    #print("Borne inférieure : " + str(problem.minimum(outfile + ".min.txt", True)))
+    #print("Borne supérieure : " + str(problem.maximum(outfile + ".max.txt", True)))
     print("\n\n")
 
 if __name__ == "__main__":
