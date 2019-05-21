@@ -6,13 +6,6 @@ from lib.Utils import Fifo
 import os
 
 def main():
-  #solution=Solution("Solutions/solution")
-  #solution.solve()
-
-  #problem=Probleme("Instances/graphe-TD-sans-DL-I.full") # sparse_10_30_3_8_I.full")
-  #print("Problem:\n#####################\n" + str(problem))
-  #print("borne inférieure : " + str(problem.minimum("Solutions/graphe-TD-sans-DL-sol.min.txt")) + "; borne supérieure : " + str(problem.maximum("Solutions/graphe-TD-sans-DL-sol.max.txt")))
-
   indir = "Instances"
   outdir = "Solutions"
   for filename in os.listdir(indir):
