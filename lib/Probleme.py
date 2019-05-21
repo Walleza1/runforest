@@ -2,6 +2,7 @@ import sys
 import math
 import time
 from graphviz import Digraph
+from lib.Utils import *
 
 class Edge(object):
   def __init__(self,origin,destination,dueDate,length,capacity):
@@ -26,12 +27,16 @@ class NodeToFree(object):
     self.idNode=idNode
     self.pop=pop
     self.maxRate=maxRate
-    self.distanceToSafe=distanceToSafe 
+    self.distanceToSafe=distanceToSafe
     self.nodes=[idNode]+path
     self.path = self.rebuildpath([idNode] + path)
 
   def __repr__(self):
     return "idNode : "+str(self.idNode)+"\npopulation : "+str(self.pop)+"\nMaxRate : "+str(self.maxRate)+"\ndistanceToSafe : "+str(self.distanceToSafe)+"\nPath: : "+str(self.path)+"\n\n"
+
+def printDebug(msg, debug):
+  if debug:
+    PrintInColor.blue(msg, end='', flush=False)
 
 class Probleme(object):
   def __init__(self, source_file):
@@ -73,22 +78,26 @@ class Probleme(object):
         if ( (dest,origin) in listOfEdges ):
           self.edges[ (dest,origin) ]=Edge(dest,origin,dueDate,length,capacity)
 
-  def renderPath(self,output="output"): 
-    dot = Digraph('G',filename=output,format='png') 
+  def renderPath(self,output="output"):
+    dot = Digraph('G',filename=output,format='png')
     dot.attr('graph',concentrate='true')
     dot.node(str(self.idSafeNode),shape='doublecircle')
     for edge in self.edges:
-        dot.edge(str(edge[0]),str(edge[1]))
+      dot.edge(str(edge[0]),str(edge[1]))
     dot.view()
 
-  def minimum(self, instance):
-    min = 0
+  def minimum(self, output, debug):
+    min_value = 0
 
-    file = open("Solutions/" + instance + ".min.txt", "w")
-    file.write(instance + "\n")
+    file = open(output, "w")
+    file.write(output + "\n")
     file.write(str(self.N) + "\n")
 
     timestamp = time.time()
+
+    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
+
+    printDebug("Probleme::minimum: Beginning, min = " + str(min_value) + "\n", debug)
 
     for node in self.evacuationPath:
       value = 0
@@ -96,46 +105,68 @@ class Probleme(object):
         value += self.edges[edge].length
       file.write(str(node.idNode) + ", " + str(value) + ", " + str(0) + "\n")
 
+      printDebug("Probleme::minimum: path length from node " + str(node.idNode) + ": " + str(value) + "+" + str(math.ceil(node.pop / node.maxRate)), debug)
       value += math.ceil(node.pop / node.maxRate)
-      if value > min:
-        min = value
+
+      if value > min_value:
+        min_value = value
+        printDebug(", which is the best value", debug)
+      printDebug("\n", debug)
 
     execution_time = time.time() - timestamp
 
     file.write("invalid\n")
-    file.write(str(min) + "\n")
+    file.write(str(min_value) + "\n")
     file.write(str(execution_time) + "\n")
     file.write("handmade 0.1.0\n")
     file.write("\"everyone evacuates from start ; no constraint check\"\n")
     file.close()
 
-    return min
+    return min_value
 
-  def maximum(self, instance):
-    max = 0
+  def maximum(self, output, debug):
+    # TODO : nouvelle manière de faire
+    # 1. Choisir un ordre de séquencement
+    #  -> ordre décroissant de la distance (chemin critique d'abord)
+    #  -> ordre croissant du temps de parcours (nodes à côté de la sortie, faciles à faire partir)
+    # 2. Placer les points
+    #  -> stratégie au plus tôt : placement du 1er node de la séquence puis les autres pour que ça marche
+    #  -> choix du taux maximum sur tout le chemin
+    #  -> choix du taux maximisé par noeud
+    # 3. Trouver un voisinnage local
+    #  -> intervertir des ressources localement et donner du mou, de manière exhaustive ?
+    # 4. Compacter
+    #  -> boucler sur chaque noeud et essayer de le pousser vers la gauche ; continuer jusqu'à ce que ça soit impossible
+    max_value = 0
 
-    file = open("Solutions/" + instance + ".max.txt", "w")
-    file.write(instance + "\n")
+    file = open(output, "w")
+    file.write(output + "\n")
     file.write(str(self.N) + "\n")
 
     timestamp = time.time()
 
+    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
+
+    printDebug("Probleme::maximum: Beginning, max = " + str(max_value) + "\n", debug)
+
     for node in self.evacuationPath:
       for edge in node.path:
-        max += self.edges[edge].length
-      file.write(str(node.idNode) + ", " + str(max) + ", " + str(0) + "\n")
-      max += math.ceil(node.pop / node.maxRate)
+        max_value += self.edges[edge].length
+      file.write(str(node.idNode) + ", " + str(max_value) + ", " + str(0) + "\n")
+
+      printDebug("Probleme::maximum: total path length at node " + str(node.idNode) + ": " + str(max_value) + "+" + str(math.ceil(node.pop / node.maxRate)) + "\n", debug)
+      max_value += math.ceil(node.pop / node.maxRate)
 
     execution_time = time.time() - timestamp
 
     file.write("invalid\n")
-    file.write(str(max) + "\n")
+    file.write(str(max_value) + "\n")
     file.write(str(execution_time) + "\n")
     file.write("handmade 0.1.0\n")
     file.write("\"everyone evacuates from start ; no constraint check\"\n")
     file.close()
 
-    return max
+    return max_value
 
   def __repr__(self):
     return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)
