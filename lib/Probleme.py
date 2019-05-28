@@ -1,6 +1,7 @@
 import copy
 import sys
 import math
+import os
 import time
 from graphviz import Digraph
 
@@ -157,7 +158,7 @@ class Probleme(object):
     for node in self.evacuationPath:
       for edge in node.path:
         max_value += self.edges[edge].length
-      file.write(str(node.idNode) + ", " + str(max_value) + ", " + str(0) + "\n")
+      file.write(str(node.idNode) + " " + str(max_value) + " " + str(0) + "\n")
 
       printDebug("Probleme::maximum: total path length at node " + str(node.idNode) + ": " + str(max_value) + "+" + str(math.ceil(node.pop / node.maxRate)) + "\n", debug)
       max_value += math.ceil(node.pop / node.maxRate)
@@ -213,7 +214,7 @@ class Probleme(object):
           if not edge[0] in resources:
             resources[edge[0]] = Resource(self.edges[edge])
           resources[edge[0]].removeTemp()
-          newDelta = resources[edge[0]].addBlock(tTotal + delta, isLastNode, node[0])
+          newDelta = resources[edge[0]].addBlock(node[0].maxRate, tTotal + delta, isLastNode, node[0])
           if newDelta != 0:
             wasDeltaIncremented = True
             delta += newDelta
@@ -225,29 +226,47 @@ class Probleme(object):
   def calculate_evacuation_time(self, resources):
     evacuation_time = 0
 
-    print(resources)
     for id in resources.items():
       for block in id[1].listBlock:
         if block.tEnd > evacuation_time:
           evacuation_time = block.tEnd
 
-    print("resources: ", resources, "\nevacuating_time: ", evacuation_time)
     return evacuation_time
 
-
-  def compute_solution(self, output, debug):
+  def compute_solution(self, instance_name, output, debug):
     file = open(output, "w")
-    file.write(output + "\n")
+    file.write(instance_name + "\n")
     file.write(str(self.N) + "\n")
 
     timestamp = time.time()
 
+    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
     printDebug("Probleme::maximum: Beginning\n", debug)
 
     sequence_order = self.sequence_ordering(debug)
     resources = self.resources_placement(sequence_order)
     max_value = self.calculate_evacuation_time(resources)
 
+    execution_time = time.time() - timestamp
+
+    printDebug("Probleme::maximum: End of the algorithm, max = " + str(max_value) + "\nplaced resources: " + str(resources) + "\n\n", debug)
+
+    for node in self.evacuationPath:
+      id = node.idNode
+      tBegin = math.inf
+      flow = math.inf
+      for block in resources[id].listBlock:
+        if tBegin > block.tBegin:
+          tBegin = block.tBegin
+          if flow > block.flow:
+            flow = block.flow
+      file.write(str(id) + " " + str(flow) + " " + str(tBegin) + "\n")
+    file.write("valid\n")
+    file.write(str(max_value) + "\n")
+    file.write(str(execution_time) + "\n")
+    file.write("Best algorithm ever\n")
+    file.write("\"All blocks are as much as possible placed\"\n")
+    file.close()
 
   def __repr__(self):
     return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)

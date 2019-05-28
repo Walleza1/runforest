@@ -13,28 +13,27 @@ class Resource(object):
   def __repr__(self):
     return str(self.origin)+" -> "+str(self.destination)+" { dueDate: "+str(self.dueDate)+", length : "+str(self.length)+", capacity : "+str(self.capacity)+",listBlock : "+str(self.listBlock)+"}"
 
-  def addBlock(self, tBegin, isLastNode, node):
-    flow = node.rate
+  def addBlock(self, flow, tBegin, isLastNode, node):
+    actualFlow = flow
     # Now create block
     tEnd = tBegin + self.length
     if flow > self.capacity:
-      # He is too Big for the ressource
-      raise Exception("Overflow")
+      actualFlow = self.capacity
     # Calc sum of part of ressource used
     actualOccupaction = sum(c.flow for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
-    potentialOccupation = actualOccupaction + flow
+    potentialOccupation = actualOccupaction + actualFlow
     if potentialOccupation > self.capacity:
       # Impossible to add it: shift
       newTBegin = min(c.tEnd for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
       delta = newTBegin - tBegin
-      delta += self.addBlock(newTBegin, isLastNode, node)
+      delta += self.addBlock(actualFlow, newTBegin, isLastNode, node)
       return delta
     else:
       # Everything is ok, then add this block
       if isLastNode:
         # On ajoute la durée pour évaculer tout le monde ! durée = ceil(pop/rate)
-        tEnd += math.ceil(node.population / node.rate)
-      self.listBlock.append(Block(tBegin, tEnd, node.rate, True))
+        tEnd += math.ceil(node.population / actualFlow)
+      self.listBlock.append(Block(tBegin, tEnd, actualFlow, True))
       return 0
 
   def removeTemp(self):
