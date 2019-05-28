@@ -24,6 +24,5 @@ def main():
       #print("Borne inférieure : " + str(problem.minimum(outfile + ".min.txt", True)))
       #print("Borne supérieure : " + str(problem.maximum(outfile + ".max.txt", True)))
       print("\n\n")
-
 if __name__ == "__main__":
   main()
