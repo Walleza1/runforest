@@ -220,21 +220,33 @@ class Probleme(object):
           isLastNode = False
       for res in resources.items():
         res[1].fixTemp()
+    return resources
+
+  def calculate_evacuation_time(self, resources):
+    evacuation_time = 0
+
+    print(resources)
+    for id in resources.items():
+      for block in id[1].listBlock:
+        if block.tEnd > evacuation_time:
+          evacuation_time = block.tEnd
+
+    print("resources: ", resources, "\nevacuating_time: ", evacuation_time)
+    return evacuation_time
+
 
   def compute_solution(self, output, debug):
-    max_value = 0
-
     file = open(output, "w")
     file.write(output + "\n")
     file.write(str(self.N) + "\n")
 
     timestamp = time.time()
 
-    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
-    printDebug("Probleme::maximum: Beginning, max = " + str(max_value) + "\n", debug)
+    printDebug("Probleme::maximum: Beginning\n", debug)
 
     sequence_order = self.sequence_ordering(debug)
-    self.resources_placement(sequence_order)
+    resources = self.resources_placement(sequence_order)
+    max_value = self.calculate_evacuation_time(resources)
 
 
   def __repr__(self):
