@@ -187,7 +187,7 @@ class Probleme(object):
     sequence = []
     for node in lengths_ordered:
       sequence.append(node)
-      #printDebug(str(node[0].id) + " (" + str(lengths[node[0]]) + ")\n", debug)
+      printDebug(str(node[0].id) + " (" + str(lengths[node[0]]) + ")\n", debug)
     return sequence
 
   def resources_placement(self, sequence_order):
@@ -219,7 +219,7 @@ class Probleme(object):
             delta += newDelta
           isLastNode = False
       for res in resources.items():
-        resources[res].fixTemp()
+        res[1].fixTemp()
 
   def compute_solution(self, output, debug):
     max_value = 0
