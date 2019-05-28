@@ -1,9 +1,13 @@
+import copy
 import sys
 import math
 import time
 from graphviz import Digraph
+
+from lib.CompleteNode import *
+from lib.Resource import *
 from lib.Utils import *
-from lib.Checker import *
+#from lib.Checker import *
 
 class Edge(object):
   def __init__(self,origin,destination,dueDate,length,capacity):
@@ -14,7 +18,7 @@ class Edge(object):
     self.capacity = capacity
 
   def __repr__(self):
-    return str(self.origin)+" -> "+str(self.destination)+" [ dueDate: "+str(self.dueDate)+", length : "+str(self.length)+", capacity : "+str(self.capacity);
+    return str(self.origin)+" -> "+str(self.destination)+" [ dueDate: "+str(self.dueDate)+", length : "+str(self.length)+", capacity : "+str(self.capacity)
 
 class NodeToFree(object):
   def rebuildpath(self,path):
@@ -174,7 +178,7 @@ class Probleme(object):
     lengths = {}
     for node in self.evacuationPath:
       my_node = CompleteNode().load(node)
-      lengths[my_node] = math.ceil(my_node.pop / my_node.rate)
+      lengths[my_node] = math.ceil(my_node.population / my_node.rate)
       for edge in node.path:
         lengths[my_node] += self.edges[edge].length
 
@@ -183,7 +187,7 @@ class Probleme(object):
     sequence = []
     for node in lengths_ordered:
       sequence.append(node)
-      printDebug(str(node.idNode) + " (" + str(lengths[node]) + ")\n", debug)
+      #printDebug(str(node[0].id) + " (" + str(lengths[node[0]]) + ")\n", debug)
     return sequence
 
   def resources_placement(self, sequence_order):
@@ -194,20 +198,22 @@ class Probleme(object):
       delta = 0
       wasDeltaIncremented = False
       while not isDoneOnce or wasDeltaIncremented:
-        tTotal = math.ceil(node.pop / node.rate)
-        for edge in node.path:
+        tTotal = math.ceil(node[0].population / node[0].rate)
+        for edge in node[0].path:
           tTotal += self.edges[edge].length
 
         isDoneOnce = True
         isLastNode = True
 
-        for edge in node.path.reverse():
+        p_reversed = copy.deepcopy(node[0].path)
+        p_reversed.reverse()
+        for edge in p_reversed:
           # The resource already exists
           tTotal -= self.edges[edge].length
           if not edge[0] in resources:
-            resources[edge[0]] = Ressource(edge[1])
+            resources[edge[0]] = Resource(self.edges[edge])
           resources[edge[0]].removeTemp()
-          newDelta = resources[edge[0]].addBlock(node.rate, edge.capacity, tTotal + delta, isLastNode, node)
+          newDelta = resources[edge[0]].addBlock(tTotal + delta, isLastNode, node[0])
           if newDelta != 0:
             wasDeltaIncremented = True
             delta += newDelta
@@ -229,7 +235,6 @@ class Probleme(object):
 
     sequence_order = self.sequence_ordering(debug)
     self.resources_placement(sequence_order)
-
 
 
   def __repr__(self):
