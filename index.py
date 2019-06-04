@@ -8,16 +8,22 @@ import os
 def main():
   indir = "Instances"
   outdir = "Solutions"
+
+  sol = Solution().load("Solutions/sparse_10_30_3_10_sol.optimal.txt")
+  print("Solution is valid? ", sol.verify())
+
   for filename in os.listdir(indir):
-    outfile = outdir + "/" + os.path.splitext(filename)[0][:-1] + "sol"
-    problem = Probleme(indir + "/" + filename)
+    if filename == "sparse_10_30_3_10_I.full":
+      instance_name = os.path.splitext(filename)[0]
+      outfile = outdir + "/" + instance_name[:-1] + "sol"
+      problem = Probleme(indir + "/" + filename)
 
-    problem.compute_solution(outfile + ".min.txt", True)
+      print("#####################\nProblem '" + filename + "'")
+      problem.compute_solution(instance_name, outfile + ".optimal.txt", False)
 
-    print("#####################\nProblem '" + filename + "'")
-    #print("Borne inférieure : " + str(problem.minimum(outfile + ".min.txt", True)))
-    #print("Borne supérieure : " + str(problem.maximum(outfile + ".max.txt", True)))
-    print("\n\n")
+      #print("Borne inférieure : " + str(problem.minimum(outfile + ".min.txt", True)))
+      #print("Borne supérieure : " + str(problem.maximum(outfile + ".max.txt", True)))
+      print("\n\n")
 
 if __name__ == "__main__":
   main()
