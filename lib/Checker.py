@@ -67,7 +67,7 @@ class Solution(object):
             c["path"] = node.path
             tmp.append(CompleteNode(c))
       self.nodeIni = tmp
-      self.tObjectif = f.readline()
+      self.tObjectif = int(f.readline().strip())
       self.timeCalc = int(float(f.readline().strip()))
       self.metadata = f.readlines()
       self.metadata = [ x.strip() for x in self.metadata ]
@@ -76,10 +76,15 @@ class Solution(object):
   def __repr__(self):
     return "File : " + str(self.file) + "\nnodeIni: " + str(self.nodeIni) + "\nresources: "+str(self.resources).replace("]},","]},\n")+", tObjectif : "+str(self.tObjectif)+", timeCalc : "+str(self.timeCalc)+", metadata : "+str(self.metadata)+"\n"
 
-  def verify(self):
+  def verify(self,verifDueDate=False):
     # Creating Blocks
     tMax=0
-    #TODO
+    tableau={}
+    for node in self.nodeIni:
+      for ori_dest in node.path:
+        tableau[ori_dest] = {}
+        for i in range(0,self.tObjectif+1):
+          tableau[ori_dest][i] = 0
     for node in self.nodeIni:
       t = node.tDebut
       packetSize = math.ceil(node.population/node.rate)
@@ -91,18 +96,20 @@ class Solution(object):
           # He is too Big for the resource
           PrintInColor.red("[ERROR] : Length exploded by nodeRate {} (max = {} nodeRate ={})".format(ori_dest,resource.capacity,node.rate))
           return False
-        # Calc sum of part of resource used
-        Interconnect=[c for c in resource.listBlock if not((c.tBegin < t and c.tEnd < t) or (c.tBegin > tEnd and c.tEnd > tEnd))]
-        actualOccupaction=sum([c.flow for c in Interconnect])
-        potentialOccupation = actualOccupaction + node.rate
-        if (potentialOccupation > resource.capacity):
-          PrintInColor.red("[ERROR] : Length exploded {} (max = {} actual ={})".format(ori_dest,resource.capacity,potentialOccupation))
-          PrintInColor.blue("\t[DEBUG] : {}\nPotential {} (tB={}->tE={})".format(resource,node.rate,t,tEnd))
-          return False
-        # Everything is ok, then add this block
-        resource.listBlock.append(Block(t,tEnd,node.rate,node.id))
+        # On utile un dict de ressource qui contient un dic de t.
+        i = t
+        if tEnd > self.tObjectif:
+          return False # On dépasse la fonction objective
+        while(i <= tEnd):
+          tableau[ori_dest][i] += node.rate
+          if tableau[ori_dest][i] > resource.capacity:
+            return False
+          if verifDueDate:
+            if (i > resource.dueDate):
+              return False
+          i+=1
         t = t + resource.length
-        if (t > tMax):
-          tMax = t
+        if (tEnd > tMax):
+          tMax = tEnd
       # Vérifier que tmax respecté dans la solution
     return tMax != self.tObjectif
