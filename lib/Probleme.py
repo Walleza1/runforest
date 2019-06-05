@@ -93,42 +93,39 @@ class Probleme(object):
     dot.view()
 
   def minimum(self, output, debug):
-    min_value = 0
+    max_value = 0
 
     file = open(output, "w")
-    file.write(output + "\n")
+    instance_name=self.source_file.replace("Instances/","").replace(".full","")
+    file.write(instance_name+ "\n")
     file.write(str(self.N) + "\n")
 
     timestamp = time.time()
 
-    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
-
-    printDebug("Probleme::minimum: Beginning, min = " + str(min_value) + "\n", debug)
-
     for node in self.evacuationPath:
       value = 0
+      rate = node.maxRate
+      for edge in node.path:
+        rate = min(rate,self.edges[edge].capacity)
+
       for edge in node.path:
         value += self.edges[edge].length
-      file.write(str(node.idNode) + ", " + str(value) + ", " + str(0) + "\n")
+      file.write(str(node.idNode) + " " + str(rate) + " " + str(0) + "\n")
 
-      printDebug("Probleme::minimum: path length from node " + str(node.idNode) + ": " + str(value) + "+" + str(math.ceil(node.pop / node.maxRate)), debug)
-      value += math.ceil(node.pop / node.maxRate)
+      value += math.ceil(node.pop / rate)-1
 
-      if value > min_value:
-        min_value = value
-        printDebug(", which is the best value", debug)
-      printDebug("\n", debug)
-
+      if value > max_value:
+        max_value = value
     execution_time = time.time() - timestamp
 
     file.write("invalid\n")
-    file.write(str(min_value) + "\n")
+    file.write(str(max_value) + "\n")
     file.write(str(execution_time) + "\n")
     file.write("handmade 0.1.0\n")
     file.write("\"everyone evacuates from start ; no constraint check\"\n")
     file.close()
 
-    return min_value
+    return max_value
 
   def maximum(self, output, debug):
     # TODO : nouvelle manière de faire
@@ -146,26 +143,25 @@ class Probleme(object):
     max_value = 0
 
     file = open(output, "w")
-    file.write(output + "\n")
+    instance_name=self.source_file.replace("Instances/","").replace(".full","")
+    file.write(instance_name+ "\n")
     file.write(str(self.N) + "\n")
 
     timestamp = time.time()
-
-    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
-
-    printDebug("Probleme::maximum: Beginning, max = " + str(max_value) + "\n", debug)
-
     for node in self.evacuationPath:
+      rate = node.maxRate
+      for edge in node.path:
+        rate = min(rate,self.edges[edge].capacity)
+      # J'ai le rate de mon node
+      packetSize = math.floor(node.pop/rate)
+      
+      file.write(str(node.idNode) + " " + str(rate) + " " + str(max_value) + "\n")
+      max_value += packetSize 
       for edge in node.path:
         max_value += self.edges[edge].length
-      file.write(str(node.idNode) + " " + str(max_value) + " " + str(0) + "\n")
-
-      printDebug("Probleme::maximum: total path length at node " + str(node.idNode) + ": " + str(max_value) + "+" + str(math.ceil(node.pop / node.maxRate)) + "\n", debug)
-      max_value += math.ceil(node.pop / node.maxRate)
-
     execution_time = time.time() - timestamp
 
-    file.write("invalid\n")
+    file.write("valid\n")
     file.write(str(max_value) + "\n")
     file.write(str(execution_time) + "\n")
     file.write("handmade 0.1.0\n")
@@ -178,7 +174,7 @@ class Probleme(object):
     # Sequence ordering: calculation of all distances for each node
     lengths = {}
     for node in self.evacuationPath:
-      my_node = CompleteNode().load(node)
+      my_node = CompleteNode().load(node,self.edges)
       lengths[my_node] = math.ceil(my_node.population / my_node.rate)
       for edge in node.path:
         lengths[my_node] += self.edges[edge].length
