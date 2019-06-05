@@ -5,83 +5,6 @@ from lib.CompleteNode import *
 from lib.Resource import *
 from lib.Block import *
 
-class Block(object):
-  def __init__(self,tBegin,tEnd,flow,temp=False):
-    self.tBegin=tBegin
-    self.tEnd=tEnd
-    self.flow=flow
-    self.temp=temp
-
-  def __repr__(self):
-    return "Block : {tBegin :"+str(self.tBegin)+",tEnd :"+str(self.tEnd)+", flow "+str(self.flow)+"}"
-
-class CompleteNode(object):
-  def __init__(self,dic={}):
-    if any(dic):
-      self.id = dic["id"]
-      self.rate = dic["rate"]
-      self.population=dic["population"]
-      self.maxRate = dic["maxRate"]
-      self.path = dic["path"]
-      self.tDebut = dic["tDebut"]
-
-  def load(self, node):
-    self.id = node.idNode
-    self.rate = node.maxRate
-    self.population = node.pop
-    self.maxRate = node.maxRate
-    self.path = node.path
-    self.tDebut = 0
-    return self
-
-  def __repr__(self):
-    return "{ id : "+str(self.id)+", rate : "+str(self.rate)+", maxRate : "+str(self.maxRate)+", path : "+str(self.path)+", tDebut (d'évac) : "+str(self.tDebut)+"\n"
-
-class Ressource(object):
-  def __init__(self,arc):
-    self.origin = arc.origin
-    self.destination = arc.destination
-    self.dueDate = arc.dueDate
-    self.length = arc.length
-    self.capacity = arc.capacity
-    self.listBlock=[]
-
-  def __repr__(self):
-    return str(self.origin)+" -> "+str(self.destination)+" { dueDate: "+str(self.dueDate)+", length : "+str(self.length)+", capacity : "+str(self.capacity)+",listBlock : "+str(self.listBlock)+"}"
-
-  def addBlock(self, tBegin, isLastNode, node):
-    # Now create block
-    tEnd = tBegin + self.length
-    if (flow > self.capacity):
-      # He is too Big for the ressource
-      raise Exception('Overflow')
-    # Calc sum of part of ressource used
-    actualOccupaction = sum(c.flow for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
-    potentialOccupation = actualOccupaction + flow
-    if (potentialOccupation > self.capacity):
-      # Impossible to add it: shift
-      newTBegin = min(c.tEnd for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
-      delta = newTBegin - tBegin
-      delta += self.addBlock(flow, newTBegin, isLastNode, node)
-      return delta
-    else:
-      # Everything is ok, then add this block
-      if (isLastNode):
-        # On ajoute la durée pour évaculer tout le monde ! durée = ceil(pop/rate)
-        tEnd += math.ceil(node.population / node.rate)
-      self.listBlock.append(Block(tBegin, tEnd, node.rate, True))
-      return 0
-
-  def removeTemp(self):
-    for c in self.listBlock:
-      if c.temp:
-        self.listBlock.remove(c)
-
-  def fixTemp(self):
-    for c in self.listBlock:
-      if c.temp:
-        c.temp = False
-
 class Solution(object):
   def __init__(self,fichierProb="",listNoeud=[],tauxNoeud=[]):
     self.file=fichierProb
@@ -145,7 +68,7 @@ class Solution(object):
             tmp.append(CompleteNode(c))
       self.nodeIni = tmp
       self.tObjectif = f.readline()
-      self.timeCalc = int(f.readline())
+      self.timeCalc = int(float(f.readline().strip()))
       self.metadata = f.readlines()
       self.metadata = [ x.strip() for x in self.metadata ]
       return self
@@ -153,46 +76,33 @@ class Solution(object):
   def __repr__(self):
     return "File : " + str(self.file) + "\nnodeIni: " + str(self.nodeIni) + "\nresources: "+str(self.resources).replace("]},","]},\n")+", tObjectif : "+str(self.tObjectif)+", timeCalc : "+str(self.timeCalc)+", metadata : "+str(self.metadata)+"\n"
 
-  def computeStartTime(self):
-    # test
-    ressourceTmp = copy.deepcopy(self.resources)
-    for node in self.nodeIni:
-      print(node)
-      delta = 0
-      delta_t = delta
-      for arc in node.path:
-        delta_t = ressourceTmp[arc].addBlock(delta,False,node)
-        delta = delta_t + ressourceTmp[arc].length
-    for res in ressourceTmp:
-      print(ressourceTmp[res])
-        
-
   def verify(self):
     # Creating Blocks
     tMax=0
+    #TODO
     for node in self.nodeIni:
-      t=node.tDebut
+      t = node.tDebut
+      packetSize = math.ceil(node.population/node.rate)
       for ori_dest in node.path:
         resource = self.resources[ori_dest]
         # Now create block
-        tEnd=t+resource.length
+        tEnd = t + packetSize -1
         if (node.rate > resource.capacity):
           # He is too Big for the resource
+          PrintInColor.red("[ERROR] : Length exploded by nodeRate {} (max = {} nodeRate ={})".format(ori_dest,resource.capacity,node.rate))
           return False
         # Calc sum of part of resource used
-        actualOccupaction=sum(c.flow for c in resource.listBlock if c.tBegin <= t and c.tEnd >= tEnd)
-        potentialOccupation=actualOccupaction + node.rate
+        Interconnect=[c for c in resource.listBlock if not((c.tBegin < t and c.tEnd < t) or (c.tBegin > tEnd and c.tEnd > tEnd))]
+        actualOccupaction=sum([c.flow for c in Interconnect])
+        potentialOccupation = actualOccupaction + node.rate
         if (potentialOccupation > resource.capacity):
+          PrintInColor.red("[ERROR] : Length exploded {} (max = {} actual ={})".format(ori_dest,resource.capacity,potentialOccupation))
+          PrintInColor.blue("\t[DEBUG] : {}\nPotential {} (tB={}->tE={})".format(resource,node.rate,t,tEnd))
           return False
         # Everything is ok, then add this block
-        if (ori_dest[1] == self.safeNode):
-          # On ajoute la durée pour évaculer tout le monde ! durée = ceil(pop/rate)
-          tEnd += math.ceil(node.population/node.rate)
-        resource.listBlock.append(Block(t,tEnd,node.rate))
-        t=tEnd
+        resource.listBlock.append(Block(t,tEnd,node.rate,node.id))
+        t = t + resource.length
         if (t > tMax):
           tMax = t
-      print(self)
-
       # Vérifier que tmax respecté dans la solution
     return tMax != self.tObjectif
