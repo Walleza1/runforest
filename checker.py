@@ -9,7 +9,7 @@ def main(pathToFile, render=False):
   sol = Solution().load(pathToFile)
   if render:
     sol.probleme.renderPath()
-  print("Solution is valid = {}".format(sol.verify()))
+  print("Solution is valid = {}".format(sol.verify(render)))
 
 
 if __name__ == "__main__":

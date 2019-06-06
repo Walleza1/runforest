@@ -6,9 +6,8 @@ import time
 from graphviz import Digraph
 
 from lib.CompleteNode import *
-from lib.Resource import *
 from lib.Utils import *
-#from lib.Checker import *
+
 
 class Edge(object):
   def __init__(self,origin,destination,dueDate,length,capacity):
@@ -38,7 +37,7 @@ class NodeToFree(object):
     self.path = self.rebuildpath([idNode] + path)
 
   def __repr__(self):
-    return "idNode : "+str(self.idNode)+"\npopulation : "+str(self.pop)+"\nMaxRate : "+str(self.maxRate)+"\ndistanceToSafe : "+str(self.distanceToSafe)+"\nPath: : "+str(self.path)+"\n\n"
+    return "{ idNode : "+str(self.idNode)+", population : "+str(self.pop)+",MaxRate : "+str(self.maxRate)+",distanceToSafe : "+str(self.distanceToSafe)+",Path: : "+str(self.path)+"}"
 
 def printDebug(msg, debug):
   if debug:
@@ -107,12 +106,10 @@ class Probleme(object):
       rate = node.maxRate
       for edge in node.path:
         rate = min(rate,self.edges[edge].capacity)
-
-      for edge in node.path:
         value += self.edges[edge].length
       file.write(str(node.idNode) + " " + str(rate) + " " + str(0) + "\n")
 
-      value += math.ceil(node.pop / rate)-1
+      value += math.ceil(node.pop / rate)
 
       if value > max_value:
         max_value = value
@@ -148,20 +145,31 @@ class Probleme(object):
     file.write(str(self.N) + "\n")
 
     timestamp = time.time()
+    priority= {}
     for node in self.evacuationPath:
+      priority[node]=math.inf
+      for edge in node.path:
+        priority[node] = min(priority[node],self.edges[edge].dueDate)
+    orderedPriority = sorted(priority.items(), key=lambda kv: kv[1])
+    evacuationPrioriry = []
+    for prio in orderedPriority:
+      evacuationPrioriry.append(prio[0])
+    for node in evacuationPrioriry:
       rate = node.maxRate
       for edge in node.path:
         rate = min(rate,self.edges[edge].capacity)
       # J'ai le rate de mon node
+      if (isinstance(node,CompleteNode)):
+        node.pop = node.population
+        node.idNode = node.id
       packetSize = math.floor(node.pop/rate)
-      
       file.write(str(node.idNode) + " " + str(rate) + " " + str(max_value) + "\n")
       max_value += packetSize 
       for edge in node.path:
         max_value += self.edges[edge].length
     execution_time = time.time() - timestamp
 
-    file.write("valid\n")
+    file.write("invalid\n")
     file.write(str(max_value) + "\n")
     file.write(str(execution_time) + "\n")
     file.write("handmade 0.1.0\n")
@@ -170,99 +178,58 @@ class Probleme(object):
 
     return max_value
 
-  def sequence_ordering(self, debug):
-    # Sequence ordering: calculation of all distances for each node
-    lengths = {}
+  def calculLocal(self):
+    from lib.Checker import Solution
+    orderNode = []
+    orderFlow = []
+    orderTime = []
+    max_value = 0
+    priority= {}
     for node in self.evacuationPath:
-      my_node = CompleteNode().load(node,self.edges)
-      lengths[my_node] = math.ceil(my_node.population / my_node.rate)
+      priority[node]=math.inf
       for edge in node.path:
-        lengths[my_node] += self.edges[edge].length
+        priority[node] = min(priority[node],self.edges[edge].dueDate)
+    orderedPriority = sorted(priority.items(), key=lambda kv: kv[1])
+    evacuationPrioriry = []
+    for prio in orderedPriority:
+      evacuationPrioriry.append(prio[0])
+    for node in evacuationPrioriry:
+      rate = node.maxRate
+      for edge in node.path:
+        rate = min(rate,self.edges[edge].capacity)
+      # J'ai le rate de mon node
+      if (isinstance(node,CompleteNode)):
+        node.pop = node.population
+        node.idNode = node.id
+      packetSize = math.floor(node.pop/rate)
 
-    # Total duration sorted by 'max duration first'
-    lengths_ordered = sorted(lengths.items(), key=lambda kv: kv[1], reverse=True)
-    sequence = []
-    for node in lengths_ordered:
-      sequence.append(node)
-      printDebug(str(node[0].id) + " (" + str(lengths[node[0]]) + ")\n", debug)
-    return sequence
+      orderNode.append(node.idNode)
+      orderFlow.append(rate)
+      orderTime.append(max_value)
 
-  def resources_placement(self, sequence_order):
-    resources = {}
+      max_value += packetSize 
+      for edge in node.path:
+        max_value += self.edges[edge].length
 
-    for node in sequence_order:
-      isDoneOnce = False
-      delta = 0
-      wasDeltaIncremented = False
-      while not isDoneOnce or wasDeltaIncremented:
-        tTotal = math.ceil(node[0].population / node[0].rate)
-        for edge in node[0].path:
-          tTotal += self.edges[edge].length
-
-        isDoneOnce = True
-        isLastNode = True
-
-        p_reversed = copy.deepcopy(node[0].path)
-        p_reversed.reverse()
-        for edge in p_reversed:
-          # The resource already exists
-          tTotal -= self.edges[edge].length
-          if not edge[0] in resources:
-            resources[edge[0]] = Resource(self.edges[edge])
-          resources[edge[0]].removeTemp()
-          newDelta = resources[edge[0]].addBlock(node[0].maxRate, tTotal + delta, isLastNode, node[0])
-          if newDelta != 0:
-            wasDeltaIncremented = True
-            delta += newDelta
-          isLastNode = False
-      for res in resources.items():
-        res[1].fixTemp()
-    return resources
-
-  def calculate_evacuation_time(self, resources):
-    evacuation_time = 0
-
-    for id in resources.items():
-      for block in id[1].listBlock:
-        if block.tEnd > evacuation_time:
-          evacuation_time = block.tEnd
-
-    return evacuation_time
-
-  def compute_solution(self, instance_name, output, debug):
-    file = open(output, "w")
-    file.write(instance_name + "\n")
-    file.write(str(self.N) + "\n")
-
-    timestamp = time.time()
-
-    printDebug("\n\n##########\n" + self.__repr__() + "\n##########\n\n", debug)
-    printDebug("Probleme::maximum: Beginning\n", debug)
-
-    sequence_order = self.sequence_ordering(debug)
-    resources = self.resources_placement(sequence_order)
-    max_value = self.calculate_evacuation_time(resources)
-
-    execution_time = time.time() - timestamp
-
-    printDebug("Probleme::maximum: End of the algorithm, max = " + str(max_value) + "\nplaced resources: " + str(resources) + "\n\n", debug)
-
-    for node in self.evacuationPath:
-      id = node.idNode
-      tBegin = math.inf
-      flow = math.inf
-      for block in resources[id].listBlock:
-        if tBegin > block.tBegin:
-          tBegin = block.tBegin
-          if flow > block.flow:
-            flow = block.flow
-      file.write(str(id) + " " + str(flow) + " " + str(tBegin) + "\n")
-    file.write("valid\n")
-    file.write(str(max_value) + "\n")
-    file.write(str(execution_time) + "\n")
-    file.write("Best algorithm ever\n")
-    file.write("\"All blocks are as much as possible placed\"\n")
-    file.close()
+#    print("{} {} {}".format(orderNode,orderFlow,orderTime))
+    sol = Solution().loadFromProbleme(self,orderNode,orderFlow,orderTime)
+ #   print("{} ".format(sol.verify(True)))
+    i = 0
+    tmpTime = orderTime
+    while (i != len(orderNode)):
+      if (tmpTime[i] == 0):
+        i+=1
+        continue
+      else:
+        tmpTime[i] -= 1
+        sol = Solution().loadFromProbleme(self,orderNode,orderFlow,tmpTime)
+        if not(sol.isCapValid(False)):
+          tmpTime[i] +=1
+          i+=1
+    print("{} {} {} time = {}| Valid = {}".format(orderNode,orderFlow,tmpTime,sol.getFindEvac(),sol.verify(True)))
+    sol.writeSolution('output')
+    test = Solution().load('output')
+    print(test.getFindEvac())
 
   def __repr__(self):
     return "Problème : "+self.source_file+"\nevacuationPath : "+str(self.evacuationPath)+"\nedges : "+str(self.edges)

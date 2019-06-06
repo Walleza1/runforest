@@ -1,6 +1,6 @@
 import math
 from lib.Block import *
-
+from lib.Utils import *
 class Resource(object):
   def __init__(self,arc):
     self.origin = arc.origin
@@ -9,32 +9,48 @@ class Resource(object):
     self.length = arc.length
     self.capacity = arc.capacity
     self.listBlock=[]
+    self.tableau={}
 
   def __repr__(self):
-    return str(self.origin)+" -> "+str(self.destination)+" { dueDate: "+str(self.dueDate)+", length : "+str(self.length)+", capacity : "+str(self.capacity)+",listBlock : "+str(self.listBlock)+"}"
-
-  def addBlock(self, flow, tBegin, isLastNode, node):
-    actualFlow = flow
+    return str(self.origin)+" -> "+str(self.destination)+" { dueDate: "+str(self.dueDate)+", length : "+str(self.length)+", capacity : "+str(self.capacity)+",listBlock : "+str(self.listBlock)+"tableau: "+str(self.tableau)+"}"
+ 
+  def tryAddBlock(self, node, tBegin):
     # Now create block
-    tEnd = tBegin + self.length
-    if flow > self.capacity:
-      actualFlow = self.capacity
-    # Calc sum of part of ressource used
-    actualOccupaction = sum(c.flow for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
-    potentialOccupation = actualOccupaction + actualFlow
-    if potentialOccupation > self.capacity:
-      # Impossible to add it: shift
-      newTBegin = min(c.tEnd for c in self.listBlock if c.tBegin <= tBegin and c.tEnd >= tEnd)
-      delta = newTBegin - tBegin
-      delta += self.addBlock(actualFlow, newTBegin, isLastNode, node)
-      return delta
-    else:
-      # Everything is ok, then add this block
-      if isLastNode:
-        # On ajoute la durée pour évaculer tout le monde ! durée = ceil(pop/rate)
-        tEnd += math.ceil(node.population / actualFlow)
-      self.listBlock.append(Block(tBegin, tEnd, actualFlow, True))
-      return 0
+    insertOk=False
+    start = tBegin
+    packetSize = math.ceil(node.population/node.rate)
+    while not(insertOk):
+      tEnd = start + packetSize -1
+      i = start
+      # Init tableau
+      delta = 0
+      tMax=0
+      flowMax=0
+      while (i <= tEnd):
+        # Pas encore dedans on le crée
+        if not(i in self.tableau):
+          self.tableau[i]=0
+        else:
+          # Déjà dedans
+          if (flowMax <= self.tableau[i]):
+            flowMax = self.tableau[i]
+            tMax = i
+        i+=1
+      if (flowMax + node.rate) > self.capacity:
+        newTBegin = tMax+1
+        deltaL= newTBegin - start
+        delta += deltaL
+        start = newTBegin
+      else:
+        return delta
+
+  def justAddBlock(self, node, tBegin):
+    packetSize = math.ceil(node.population/node.rate)
+    tEnd = tBegin + packetSize-1
+    i = tBegin
+    while (i <= tEnd):
+      self.tableau[i] += node.rate
+      i+=1
 
   def removeTemp(self):
     for c in self.listBlock:
